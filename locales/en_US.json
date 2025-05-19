@@ -1,0 +1,13 @@
+{
+    "plugin": {
+        "name": "Controller"
+    },
+    "actions": {
+        "joystick": {
+            "name": "Joystick"
+        },
+        "joystick-buttons": {
+            "name": "Joystick Buttons"
+        }
+    }
+} 
