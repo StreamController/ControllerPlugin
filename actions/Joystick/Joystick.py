@@ -40,6 +40,7 @@ class Joystick(ActionCore):
         
         self.has_configuration = True
         self.joystick = None
+
         self.axis_items = [
             AxisItem("Left X (ABS_RZ)", e.ABS_RZ),
             AxisItem("Left Y (ABS_THROTTLE)", e.ABS_THROTTLE),
@@ -66,7 +67,7 @@ class Joystick(ActionCore):
             subtitle=self.plugin_base.lm.get("actions.joystick.axis.subtitle"),
             on_change=self.on_axis_change
         )
-        
+
         # Create operation type dropdown
         self.operation_row = ComboRow(
             action_core=self,
@@ -90,7 +91,10 @@ class Joystick(ActionCore):
             step=100,
             digits=1
         )
-        
+
+        # CUSTOM CONFIG AREA WIDGETS HERE
+        self.config_area = Gtk.ListBox()
+
         # Warning label for mouse-affecting axes
         self.warning_label = Gtk.Label(
             label="⚠️ Warning: Using this axis may affect mouse cursor position",
@@ -100,21 +104,38 @@ class Joystick(ActionCore):
         self.warning_row = Adw.ActionRow()
         self.warning_row.set_child(self.warning_label)
         self.warning_row.set_visible(False)
-        
-        # Center button row
-        self.center_row = Adw.ActionRow(
-            title="Center Axis",
-            subtitle="Reset the selected axis to center position"
+
+        # Axis position row
+        self.position_row = Adw.ActionRow(
+            title="Postion Axis",
+            subtitle="Set the selected axis to extents position"
         )
-        
-        center_button = Gtk.Button(label="Center", vexpand=True)
-        center_button.connect("clicked", self.event_set_center)
-        self.center_row.add_suffix(center_button)
-        
+
+        # Axis control buttons
+        position_controls = Gtk.Grid()
+        minimum_button = Gtk.Button(label="⭰", vexpand=True)
+        minimum_button.connect("clicked", self.event_set_minimum)
+        pos_center_button = Gtk.Button(label="0", vexpand=True)
+        pos_center_button.connect("clicked", self.event_set_center)
+        maximum_button = Gtk.Button(label="⭲", vexpand=True)
+        maximum_button.connect("clicked", self.event_set_maximum)
+
+        position_controls.attach(minimum_button, 0, 0, 1, 1)
+        position_controls.attach(pos_center_button, 1, 0, 1, 1)
+        position_controls.attach(maximum_button, 2, 0, 1, 1)
+        self.position_row.add_suffix(position_controls)
+
+        # Populate config area widget
+        self.config_area.append(self.warning_row)
+        self.config_area.append(self.position_row)
+
         # Update UI based on current settings
         self.update_axis_range()
 
         self.create_event_assigners()
+        
+    def get_custom_config_area(self):
+        return self.config_area
 
     def create_event_assigners(self):
         self.add_event_assigner(EventAssigner(
