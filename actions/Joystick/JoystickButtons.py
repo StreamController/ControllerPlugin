@@ -1,4 +1,8 @@
-from src.backend.PluginManager.ActionBase import ActionBase
+from loguru import logger as log
+
+from src.backend.PluginManager.ActionCore import ActionCore
+from src.backend.PluginManager.EventAssigner import EventAssigner
+from src.backend.DeckManagement.InputIdentifier import Input
 import os
 import gi
 gi.require_version("Gtk", "4.0")
@@ -23,7 +27,7 @@ class ActionTypeItem(SimpleComboRowItem):
         super().__init__(action_name, action_name)
         self.action_type = action_type
 
-class JoystickButtons(ActionBase):
+class JoystickButtons(ActionCore):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
@@ -87,7 +91,17 @@ class JoystickButtons(ActionBase):
         # Update UI based on selected action type
         self.action_type_row.on_change = self.on_action_type_change
         self.update_ui_visibility()
+
+        self.create_event_assigners()
     
+    def create_event_assigners(self):
+        self.add_event_assigner(EventAssigner(
+            id="handle-button",
+            ui_label="Handle Button",
+            default_events=[Input.Dial.Events.DOWN,Input.Key.Events.DOWN],
+            callback=self.event_handle_button
+        ))
+
     def on_ready(self):
         self.set_media(media_path=os.path.join(self.plugin_base.PATH, "assets", "controller.png"), size=0.8)
         
@@ -103,9 +117,9 @@ class JoystickButtons(ActionBase):
         """Handle action type selection change"""
         self.update_ui_visibility()
     
-    def on_key_down(self) -> None:
+    def event_handle_button(self, event) -> None:
         if not self.plugin_base.gamepad:
-            print("Failed to initialize joystick")
+            self.show_error("Failed to initialize joystick")
             return
         
         settings = self.get_settings()
@@ -121,16 +135,16 @@ class JoystickButtons(ActionBase):
             # Perform button action based on selected type
             if action_type == "press_release":
                 duration = float(settings.get("duration", 0.1))
-                print(f"Press and release button {button_item.get_value()} for {duration}s")
+                log.debug(f"Press and release button {button_item.get_value()} for {duration}s")
                 self.plugin_base.gamepad.press_button(button_code, duration)
             
             elif action_type == "press":
-                print(f"Press button {button_item.get_value()}")
+                log.debug(f"Press button {button_item.get_value()}")
                 self.plugin_base.gamepad.ui.write(e.EV_KEY, button_code, 1)  # Button down
                 self.plugin_base.gamepad.ui.syn()
             
             elif action_type == "release":
-                print(f"Release button {button_item.get_value()}")
+                log.debug(f"Release button {button_item.get_value()}")
                 self.plugin_base.gamepad.ui.write(e.EV_KEY, button_code, 0)  # Button up
                 self.plugin_base.gamepad.ui.syn()
             
@@ -139,7 +153,7 @@ class JoystickButtons(ActionBase):
                 current_state = self.get_button_state(button_code)
                 new_state = 1 if current_state == 0 else 0
                 
-                print(f"Toggle button {button_item.get_value()} to {new_state}")
+                log.debug(f"Toggle button {button_item.get_value()} to {new_state}")
                 self.plugin_base.gamepad.ui.write(e.EV_KEY, button_code, new_state)
                 self.plugin_base.gamepad.ui.syn()
                 
