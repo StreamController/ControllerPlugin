@@ -112,27 +112,29 @@ class Joystick(ActionCore):
         )
 
         # Axis control buttons
-        position_controls = Gtk.Grid()
-        minimum_button = Gtk.Button(label="⭰", vexpand=True)
+        position_controls = Gtk.Box(css_classes=["linked"], valign=Gtk.Align.CENTER)
+        minimum_button = Gtk.Button(icon_name="go-last-symbolic-rtl")
         minimum_button.connect("clicked", self.event_set_minimum)
-        pos_center_button = Gtk.Button(label="0", vexpand=True)
+        pos_center_button = Gtk.Button(label="0")
         pos_center_button.connect("clicked", self.event_set_center)
-        maximum_button = Gtk.Button(label="⭲", vexpand=True)
+        maximum_button = Gtk.Button(icon_name="go-last-symbolic")
         maximum_button.connect("clicked", self.event_set_maximum)
 
-        position_controls.attach(minimum_button, 0, 0, 1, 1)
-        position_controls.attach(pos_center_button, 1, 0, 1, 1)
-        position_controls.attach(maximum_button, 2, 0, 1, 1)
+        position_controls.append(minimum_button)
+        position_controls.append(pos_center_button)
+        position_controls.append(maximum_button)
         self.position_row.add_suffix(position_controls)
 
         # Populate config area widget
         self.config_area.append(self.warning_row)
-        self.config_area.append(self.position_row)
 
         # Update UI based on current settings
         self.update_axis_range()
 
         self.create_event_assigners()
+
+    def get_config_rows(self):
+        return [self.position_row]
         
     def get_custom_config_area(self):
         return self.config_area
