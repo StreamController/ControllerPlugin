@@ -35,6 +35,7 @@ class OperationItem(SimpleComboRowItem):
         self.operation_type = operation_type
 
 class Joystick(ActionCore):
+    VALUE_STEP = 0.01
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
@@ -88,8 +89,7 @@ class Joystick(ActionCore):
             subtitle=self.plugin_base.lm.get("actions.joystick.value.subtitle"),
             min=-32767,
             max=32767,
-            step=100,
-            digits=1
+            step=self.VALUE_STEP,
         )
 
         # CUSTOM CONFIG AREA WIDGETS HERE
@@ -195,11 +195,11 @@ class Joystick(ActionCore):
         if axis_code in HAT_AXES:
             self.value_row.min = -1
             self.value_row.max = 1
-            self.value_row.step = 1
+            self.value_row.step = self.VALUE_STEP
         else:
             self.value_row.min = -100
             self.value_row.max = 100
-            self.value_row.step = 1
+            self.value_row.step = self.VALUE_STEP
     
     def on_axis_change(self, widget, new_value, old_value):
         """Handle axis selection change"""
