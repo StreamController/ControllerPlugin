@@ -54,8 +54,8 @@ class Joystick(ActionCore):
         ]
         
         self.operation_items = [
-            OperationItem("Add to Value", "add"),
-            OperationItem("Set Value", "set")            
+            OperationItem(self.plugin_base.lm.get("actions.joystick.operation.add"), "add"),
+            OperationItem(self.plugin_base.lm.get("actions.joystick.operation.set"), "set")            
         ]
 
         # Create axis selection dropdown
@@ -99,7 +99,7 @@ class Joystick(ActionCore):
 
         # Warning label for mouse-affecting axes
         self.warning_label = Gtk.Label(
-            label="⚠️ Warning: Using this axis may affect mouse cursor position",
+            label=self.plugin_base.lm.get("actions.joystick.warning.axis-warning"),
             halign=Gtk.Align.START,
             css_classes=["warning-text"]
         )
@@ -109,8 +109,8 @@ class Joystick(ActionCore):
 
         # Axis position row
         self.position_row = Adw.ActionRow(
-            title="Postion Axis",
-            subtitle="Set the selected axis to extents position"
+            title=self.plugin_base.lm.get("actions.joystick.position.title"),
+            subtitle=self.plugin_base.lm.get("actions.joystick.position.subtitle")
         )
 
         # Axis control buttons
@@ -146,40 +146,40 @@ class Joystick(ActionCore):
     def create_event_assigners(self):
         self.add_event_assigner(EventAssigner(
             id="adjust-axis-center",
-            ui_label="Set Axis to Center",
+            ui_label=self.plugin_base.lm.get("actions.joystick.events.adjust-axis-center"),
             default_event=Input.Dial.Events.DOWN,
             callback=self.event_set_center
         ))
 
         self.add_event_assigner(EventAssigner(
             id="adjust-axis-maximum",
-            ui_label="Set Axis to Maximum",
+            ui_label=self.plugin_base.lm.get("actions.joystick.events.adjust-axis-maximum"),
             callback=self.event_set_maximum
         ))
 
         self.add_event_assigner(EventAssigner(
             id="adjust-axis-minimum",
-            ui_label="Set Axis to Minimum",
+            ui_label=self.plugin_base.lm.get("actions.joystick.events.adjust-axis-minimum"),
             callback=self.event_set_minimum
         ))
 
         self.add_event_assigner(EventAssigner(
             id="adjust-axis-positive",
-            ui_label="Adjust Axis Positive",
+            ui_label=self.plugin_base.lm.get("actions.joystick.events.adjust-axis-positive"),
             default_event= Input.Dial.Events.TURN_CW,
             callback=self.event_adjust_axis_positive
         ))
 
         self.add_event_assigner(EventAssigner(
             id="adjust-axis-negative",
-            ui_label="Adjust Axis Negative",
+            ui_label=self.plugin_base.lm.get("actions.joystick.events.adjust-axis-negative"),
             default_event= Input.Dial.Events.TURN_CCW,
             callback=self.event_adjust_axis_negative
         ))
 
         self.add_event_assigner(EventAssigner(
             id="adjust-axis-value",
-            ui_label="Update Axis Value",
+            ui_label=self.plugin_base.lm.get("actions.joystick.events.adjust-axis-value"),
             default_event=Input.Key.Events.DOWN,
             callback=self.event_set_value
         ))
