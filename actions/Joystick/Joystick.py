@@ -92,6 +92,8 @@ class Joystick(ActionCore):
             step=self.VALUE_STEP,
         )
 
+        # self.spin_button: Gtk.SpinButton = self.value_row._widget.get_first_child().get_last_child().get_first_child()
+
         # CUSTOM CONFIG AREA WIDGETS HERE
         self.config_area = Gtk.ListBox()
 
