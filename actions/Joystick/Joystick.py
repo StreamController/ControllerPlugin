@@ -1,4 +1,8 @@
-from src.backend.PluginManager.ActionBase import ActionBase
+from loguru import logger as log
+
+from src.backend.PluginManager.ActionCore import ActionCore
+from src.backend.DeckManagement.InputIdentifier import Input
+from src.backend.PluginManager.EventAssigner import EventAssigner
 import os
 import gi
 gi.require_version("Gtk", "4.0")
@@ -12,6 +16,9 @@ from GtkHelper.GenerativeUI.ComboRow import ComboRow
 from GtkHelper.GenerativeUI.SpinRow import SpinRow
 from GtkHelper.GenerativeUI.SwitchRow import SwitchRow
 from GtkHelper.ComboRow import BaseComboRowItem, SimpleComboRowItem
+
+AXIS_EXTENTS = 32767
+HAT_AXES = [e.ABS_HAT0X, e.ABS_HAT0Y]
 
 class AxisItem(SimpleComboRowItem):
     def __init__(self, axis_name, axis_code, affects_mouse=False):
@@ -27,12 +34,14 @@ class OperationItem(SimpleComboRowItem):
         super().__init__(operation_name, operation_name)
         self.operation_type = operation_type
 
-class Joystick(ActionBase):
+class Joystick(ActionCore):
+    VALUE_STEP = 0.01
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
         self.has_configuration = True
         self.joystick = None
+
         self.axis_items = [
             AxisItem("Left X (ABS_RZ)", e.ABS_RZ),
             AxisItem("Left Y (ABS_THROTTLE)", e.ABS_THROTTLE),
@@ -45,8 +54,8 @@ class Joystick(ActionBase):
         ]
         
         self.operation_items = [
-            OperationItem("Set Value", "set"),
-            OperationItem("Add to Value", "add")
+            OperationItem(self.plugin_base.lm.get("actions.joystick.operation.add"), "add"),
+            OperationItem(self.plugin_base.lm.get("actions.joystick.operation.set"), "set")            
         ]
 
         # Create axis selection dropdown
@@ -59,7 +68,7 @@ class Joystick(ActionBase):
             subtitle=self.plugin_base.lm.get("actions.joystick.axis.subtitle"),
             on_change=self.on_axis_change
         )
-        
+
         # Create operation type dropdown
         self.operation_row = ComboRow(
             action_core=self,
@@ -80,33 +89,101 @@ class Joystick(ActionBase):
             subtitle=self.plugin_base.lm.get("actions.joystick.value.subtitle"),
             min=-32767,
             max=32767,
-            step=100,
-            digits=0
+            step=self.VALUE_STEP,
         )
-        
+
+        # self.spin_button: Gtk.SpinButton = self.value_row._widget.get_first_child().get_last_child().get_first_child()
+
+        # CUSTOM CONFIG AREA WIDGETS HERE
+        self.config_area = Gtk.ListBox()
+
         # Warning label for mouse-affecting axes
         self.warning_label = Gtk.Label(
-            label="⚠️ Warning: Using this axis may affect mouse cursor position",
+            label=self.plugin_base.lm.get("actions.joystick.warning.axis-warning"),
             halign=Gtk.Align.START,
             css_classes=["warning-text"]
         )
         self.warning_row = Adw.ActionRow()
         self.warning_row.set_child(self.warning_label)
         self.warning_row.set_visible(False)
-        
-        # Center button row
-        self.center_row = Adw.ActionRow(
-            title="Center Axis",
-            subtitle="Reset the selected axis to center position"
+
+        # Axis position row
+        self.position_row = Adw.ActionRow(
+            title=self.plugin_base.lm.get("actions.joystick.position.title"),
+            subtitle=self.plugin_base.lm.get("actions.joystick.position.subtitle")
         )
-        
-        center_button = Gtk.Button(label="Center", vexpand=True)
-        center_button.connect("clicked", self.on_center_clicked)
-        self.center_row.add_suffix(center_button)
-        
+
+        # Axis control buttons
+        position_controls = Gtk.Box(css_classes=["linked"], valign=Gtk.Align.CENTER)
+        minimum_button = Gtk.Button(icon_name="go-last-symbolic-rtl")
+        minimum_button.connect("clicked", self.event_set_minimum)
+        pos_center_button = Gtk.Button(label="0")
+        pos_center_button.connect("clicked", self.event_set_center)
+        maximum_button = Gtk.Button(icon_name="go-last-symbolic")
+        maximum_button.connect("clicked", self.event_set_maximum)
+
+        position_controls.append(minimum_button)
+        position_controls.append(pos_center_button)
+        position_controls.append(maximum_button)
+        self.position_row.add_suffix(position_controls)
+
+        self.put_custom_config_rows_below_gen_ui = True
+
+        # Populate config area widget
+        self.config_area.append(self.warning_row)
+
         # Update UI based on current settings
         self.update_axis_range()
-    
+
+        self.create_event_assigners()
+
+    def get_config_rows(self):
+        return [self.position_row]
+        
+    def get_custom_config_area(self):
+        return self.config_area
+
+    def create_event_assigners(self):
+        self.add_event_assigner(EventAssigner(
+            id="adjust-axis-center",
+            ui_label=self.plugin_base.lm.get("actions.joystick.events.adjust-axis-center"),
+            default_event=Input.Dial.Events.DOWN,
+            callback=self.event_set_center
+        ))
+
+        self.add_event_assigner(EventAssigner(
+            id="adjust-axis-maximum",
+            ui_label=self.plugin_base.lm.get("actions.joystick.events.adjust-axis-maximum"),
+            callback=self.event_set_maximum
+        ))
+
+        self.add_event_assigner(EventAssigner(
+            id="adjust-axis-minimum",
+            ui_label=self.plugin_base.lm.get("actions.joystick.events.adjust-axis-minimum"),
+            callback=self.event_set_minimum
+        ))
+
+        self.add_event_assigner(EventAssigner(
+            id="adjust-axis-positive",
+            ui_label=self.plugin_base.lm.get("actions.joystick.events.adjust-axis-positive"),
+            default_event= Input.Dial.Events.TURN_CW,
+            callback=self.event_adjust_axis_positive
+        ))
+
+        self.add_event_assigner(EventAssigner(
+            id="adjust-axis-negative",
+            ui_label=self.plugin_base.lm.get("actions.joystick.events.adjust-axis-negative"),
+            default_event= Input.Dial.Events.TURN_CCW,
+            callback=self.event_adjust_axis_negative
+        ))
+
+        self.add_event_assigner(EventAssigner(
+            id="adjust-axis-value",
+            ui_label=self.plugin_base.lm.get("actions.joystick.events.adjust-axis-value"),
+            default_event=Input.Key.Events.DOWN,
+            callback=self.event_set_value
+        ))
+
     def on_ready(self):
         self.set_media(media_path=os.path.join(self.plugin_base.PATH, "assets", "joystick.png"), size=0.8)
         
@@ -121,14 +198,14 @@ class Joystick(ActionBase):
     
     def update_value_range_for_axis(self, axis_code):
         """Update value spinner range based on selected axis"""
-        if axis_code in [e.ABS_HAT0X, e.ABS_HAT0Y]:
+        if axis_code in HAT_AXES:
             self.value_row.min = -1
             self.value_row.max = 1
-            self.value_row.step = 1
+            self.value_row.step = self.VALUE_STEP
         else:
             self.value_row.min = -100
             self.value_row.max = 100
-            self.value_row.step = 1
+            self.value_row.step = self.VALUE_STEP
     
     def on_axis_change(self, widget, new_value, old_value):
         """Handle axis selection change"""
@@ -140,41 +217,106 @@ class Joystick(ActionBase):
         """Handle operation type change"""
         # You can adjust UI based on operation if needed
         pass
-    
-    def on_center_clicked(self, button):
+
+    def event_adjust_axis_positive(self, event):
+        if not self.plugin_base.gamepad:
+            self.show_error("failed to initialize joystick")
+            return
+        settings = self.get_settings()
+        self.adjust_value(settings.get("value", 0))
+
+    def event_adjust_axis_negative(self, event):
+        if not self.plugin_base.gamepad:
+            self.show_error("failed to initialize joystick")
+            return
+        settings = self.get_settings()
+        self.adjust_value(-settings.get("value", 0))
+
+    def event_set_center(self, event):
         """Center the selected axis"""
         if not self.plugin_base.gamepad:
             return
-            
+
         axis_item = self.axis_row.get_selected_item()
-        if axis_item:
-            self.plugin_base.gamepad.move_axis(axis_item.axis_code, 0)
-            self.plugin_base.gamepad.save_axis_value(axis_item.axis_code, 0)
-    
-    def on_key_down(self) -> None:
+        try:
+            if axis_item:
+                axis_code = axis_item.axis_code
+                self.plugin_base.gamepad.move_axis(axis_item.axis_code, 0)
+                self.plugin_base.gamepad.save_axis_value(axis_item.axis_code, 0)
+                log.debug(f"Axis: {axis_item.axis_code} set to zero")
+        except Exception as ex:
+            self.show_error(f"Failed to move joystick: {str(ex)}")
+
+    def event_set_maximum(self, event):
+        """Set the selected axis to its maximum positive extent"""
         if not self.plugin_base.gamepad:
-            print("failed to initialize joystick")
+            return
+
+        axis_item = self.axis_row.get_selected_item()
+        try:
+            if axis_item:
+                axis_code = axis_item.axis_code
+                if axis_code in HAT_AXES:
+                    new_value = 1
+                else:
+                    new_value = AXIS_EXTENTS
+                
+                self.plugin_base.gamepad.move_axis(axis_code, new_value)
+                self.plugin_base.gamepad.save_axis_value(axis_code, 100)
+
+                log.debug(f"Axis: {axis_item.axis_code} set to maximum {new_value}")
+        except Exception as ex:
+            self.show_error(f"Failed to move joystick: {str(ex)}")
+
+    def event_set_minimum(self, event):
+        """Set the selected axis to its maximum positive extent"""
+        if not self.plugin_base.gamepad:
             return
         
+        axis_item = self.axis_row.get_selected_item()
+        try:
+            if axis_item:
+                axis_code = axis_item.axis_code
+                if axis_code in HAT_AXES:
+                    new_value = -1
+                else:
+                    new_value = -AXIS_EXTENTS
+                
+                self.plugin_base.gamepad.move_axis(axis_code, new_value)
+                self.plugin_base.gamepad.save_axis_value(axis_code, -100)
+
+                log.debug(f"Axis: {axis_item.axis_code} set to minimum {new_value}")
+        except Exception as ex:
+            self.show_error(f"Failed to move joystick: {str(ex)}")
+    
+    def event_set_value(self, event):
+        if not self.plugin_base.gamepad:
+            return
+
+        self.adjust_value()
+
+    def adjust_value(self, percent_change:int|float=None) -> None:
+        """Adjust value based on percentage from -100 to 100"""
+
         settings = self.get_settings()
         
         # Get the axis, operation and value
         axis_item = self.axis_row.get_selected_item()
         operation_item = self.operation_row.get_selected_item()
-        percentage_value = int(settings.get("value", 0))  # Convert to integer
+        percentage_value = percent_change if percent_change else settings.get("value", 0)
         
         try:
             axis_code = axis_item.axis_code
             operation = operation_item.operation_type
             
             # Convert percentage value to actual joystick value
-            if axis_code in [e.ABS_HAT0X, e.ABS_HAT0Y]:
+            if axis_code in HAT_AXES:
                 value = percentage_value  # D-pad values are already -1, 0, 1
             else:
                 # Convert from percentage (-100 to 100) to joystick value (-32767 to 32767)
                 value = int((percentage_value / 100.0) * 32767)
             
-            print(f"Axis: {axis_item.axis_code}, Operation: {operation_item.operation_type}, Percentage: {percentage_value}, Value: {value}")
+            log.debug(f"Axis: {axis_item.axis_code}, Operation: {operation_item.operation_type}, Percentage: {percentage_value}, Value: {value}")
             
             # Perform the joystick action
             if operation == "set":
@@ -188,7 +330,7 @@ class Joystick(ActionBase):
                 new_percentage = current_percentage + percentage_value
                 
                 # Clamp values to appropriate range
-                if axis_code in [e.ABS_HAT0X, e.ABS_HAT0Y]:
+                if axis_code in HAT_AXES:
                     new_percentage = max(-1, min(1, new_percentage))
                     new_value = new_percentage
                 else:

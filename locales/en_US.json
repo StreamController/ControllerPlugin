@@ -1,13 +1,28 @@
 {
-    "plugin": {
-        "name": "Controller"
-    },
-    "actions": {
-        "joystick": {
-            "name": "Joystick"
-        },
-        "joystick-buttons": {
-            "name": "Joystick Buttons"
-        }
-    }
+    "plugin.name": "Controller",
+    "actions.joystick.name": "Joystick",
+    "actions.joystick.axis.title": "Joystick Axis",
+    "actions.joystick.axis.subtitle": "Axis to map event to",
+    "actions.joystick.operation.title": "Operation",
+    "actions.joystick.operation.subtitle": "Operation to perform on events",
+    "actions.joystick.operation.add": "Add to Value",
+    "actions.joystick.operation.set": "Set Value",
+    "actions.joystick.value.title": "Value Increment",
+    "actions.joystick.value.subtitle": "In percentage [-100,100], value to increment per event",
+    "actions.joystick.position.title": "Postion Axis",
+    "actions.joystick.position.subtitle": "Set the selected axis to extents position",
+    "actions.joystick.warning.axis-warning": "⚠️ Warning: Using this axis may affect mouse cursor position",
+    "actions.joystick.events.adjust-axis-center": "Set Axis to Center",
+    "actions.joystick.events.adjust-axis-maximum": "Set Axis to Maximum",
+    "actions.joystick.events.adjust-axis-minimum": "Set Axis to Minimum",
+    "actions.joystick.events.adjust-axis-positive": "Adjust Axis Positive",
+    "actions.joystick.events.adjust-axis-negative": "Adjust Axis Negative",
+    "actions.joystick.events.adjust-axis-value": "Update Axis Value",
+    "actions.joystick-buttons.name": "Joystick Buttons",
+    "actions.joystick-buttons.button.title": "Button",
+    "actions.joystick-buttons.button.subtitle": "Button to be emulated when triggered",
+    "actions.joystick-buttons.action-type.title": "Action Type",
+    "actions.joystick-buttons.action-type.subtitle": "What action to perform when triggered",
+    "actions.joystick-buttons.duration.title": "Duration",
+    "actions.joystick-buttons.duration.subtitle": "How long to trigger button in seconds"
 } 
