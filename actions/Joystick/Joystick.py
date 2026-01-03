@@ -127,6 +127,8 @@ class Joystick(ActionCore):
         position_controls.append(maximum_button)
         self.position_row.add_suffix(position_controls)
 
+        self.put_custom_config_rows_below_gen_ui = True
+
         # Populate config area widget
         self.config_area.append(self.warning_row)
 
