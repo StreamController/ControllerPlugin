@@ -1,0 +1,85 @@
+{
+    "plugin": {
+        "description": "Turns the deck into a game controller: it creates a virtual gamepad and the actions press its buttons and move its axes.",
+        "requirements": "Access to /dev/uinput so the virtual gamepad can be created. Without it the actions do nothing."
+    },
+    "actions": {
+        "Joystick": {
+            "description": "Moves one axis of the virtual gamepad. Put one on a key with a value and another with value 0 on a second key, or use \"Add to Value\" on two keys to nudge an axis in both directions.",
+            "settings": {
+                "axis": {
+                    "type": "string",
+                    "default": "Left X (ABS_RZ)",
+                    "values": [
+                        "Left X (ABS_RZ)",
+                        "Left Y (ABS_THROTTLE)",
+                        "Right X (ABS_RX)",
+                        "Right Y (ABS_RY)",
+                        "D-pad X",
+                        "D-pad Y",
+                        "X Axis (ABS_X)",
+                        "Y Axis (ABS_Y)"
+                    ],
+                    "description": "Which axis to move. The two last ones can move the mouse cursor as well - avoid them unless that is wanted."
+                },
+                "operation": {
+                    "type": "string",
+                    "default": "Set Value",
+                    "values": [
+                        "Set Value",
+                        "Add to Value"
+                    ],
+                    "description": "\"Set Value\" puts the axis at the value, \"Add to Value\" moves it by that much from where it is."
+                },
+                "value": {
+                    "type": "integer",
+                    "default": 0,
+                    "description": "How far to deflect the axis, in percent from -100 to 100. For the two D-pad axes it is -1, 0 or 1 instead.",
+                    "example": 100
+                }
+            }
+        },
+        "JoystickButtons": {
+            "description": "Presses a button on the virtual gamepad. It can tap the button, hold it down, release it again, or toggle it.",
+            "settings": {
+                "button": {
+                    "type": "string",
+                    "default": "A Button",
+                    "values": [
+                        "A Button",
+                        "B Button",
+                        "X Button",
+                        "Y Button",
+                        "Left Bumper",
+                        "Right Bumper",
+                        "Left Trigger",
+                        "Right Trigger",
+                        "Select Button",
+                        "Start Button",
+                        "Home/Guide",
+                        "Left Stick Click",
+                        "Right Stick Click"
+                    ],
+                    "description": "Which gamepad button to operate."
+                },
+                "action_type": {
+                    "type": "string",
+                    "default": "Press and Release",
+                    "values": [
+                        "Press and Release",
+                        "Press",
+                        "Release",
+                        "Toggle"
+                    ],
+                    "description": "\"Press and Release\" taps the button. \"Press\" holds it down until a \"Release\" action lets go - use those two on separate keys. \"Toggle\" flips between held and released."
+                },
+                "duration": {
+                    "type": "number",
+                    "default": 0.1,
+                    "description": "How long the button stays down, in seconds. Only used with \"Press and Release\".",
+                    "example": 0.1
+                }
+            }
+        }
+    }
+}
